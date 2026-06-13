@@ -8,6 +8,47 @@ from scraper import build_date_options, get_race_list, get_shutuba
 app = Flask(__name__)
 
 
+def build_initial_payload() -> dict:
+    dates = build_date_options()
+    selected_date = _pick_initial_date(dates)
+    venues: list[dict] = []
+    shutuba = None
+    selected_race_no = None
+
+    try:
+        venues = get_race_list(selected_date.replace("-", ""))
+        if venues and venues[0]["races"]:
+            selected_race_no = venues[0]["races"][0]["race_no"]
+            shutuba = get_shutuba(venues[0]["races"][0]["race_id"])
+    except Exception:  # noqa: BLE001
+        venues = []
+        shutuba = None
+        selected_race_no = None
+
+    return {
+        "dates": dates,
+        "selectedDate": selected_date,
+        "venues": venues,
+        "selectedVenueIndex": 0,
+        "selectedRaceNo": selected_race_no,
+        "shutuba": shutuba,
+    }
+
+
+def _pick_initial_date(dates: list[dict]) -> str:
+    today = date.today().isoformat()
+    ordered = [item["date"] for item in dates]
+
+    if today in ordered:
+        return today
+
+    for item in ordered:
+        if item >= today:
+            return item
+
+    return ordered[-1] if ordered else today
+
+
 @app.get("/health")
 def health():
     return jsonify({"status": "ok"})
@@ -15,7 +56,8 @@ def health():
 
 @app.get("/")
 def index():
-    return render_template("index.html")
+    return render_template("index.html", initial_data=build_initial_payload())
+
 
 @app.get("/api/dates")
 def api_dates():

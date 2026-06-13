@@ -4,7 +4,6 @@ const state = {
   venues: [],
   selectedVenueIndex: 0,
   selectedRaceNo: null,
-  loading: false,
 };
 
 const dateScroll = document.getElementById("dateScroll");
@@ -21,70 +20,98 @@ const statusEl = document.getElementById("status");
 document.getElementById("prevDate").addEventListener("click", () => shiftDate(-1));
 document.getElementById("nextDate").addEventListener("click", () => shiftDate(1));
 
-let initAttempts = 0;
+boot();
 
-init();
-
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-async function fetchJson(url, retries = 20) {
-  let lastError = null;
-
-  for (let attempt = 1; attempt <= retries; attempt += 1) {
-    try {
-      const res = await fetch(url);
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || `HTTP ${res.status}`);
-      }
-      return data;
-    } catch (error) {
-      lastError = error;
-      if (attempt < retries) {
-        showStatus(`サーバー起動中... (${attempt}/${retries})`);
-        await sleep(4000);
-      }
-    }
+function boot() {
+  const initial = readInitialData();
+  if (initial) {
+    applyPayload(initial);
+    return;
   }
 
-  throw lastError;
+  init().catch((error) => {
+    renderEmpty("データを読み込めませんでした");
+    showStatus(error.message, true);
+    console.error(error);
+  });
+}
+
+function readInitialData() {
+  const node = document.getElementById("initial-data");
+  if (!node) return null;
+
+  try {
+    return JSON.parse(node.textContent);
+  } catch (error) {
+    console.error("initial-data parse failed", error);
+    return null;
+  }
+}
+
+function applyPayload(payload) {
+  state.dates = payload.dates || [];
+  state.selectedDate = payload.selectedDate || findClosestDate(state.dates);
+  state.venues = payload.venues || [];
+  state.selectedVenueIndex = payload.selectedVenueIndex || 0;
+  state.selectedRaceNo = payload.selectedRaceNo ?? state.venues[0]?.races?.[0]?.race_no ?? null;
+
+  renderDates();
+  renderVenues();
+  renderRaces();
+
+  if (payload.shutuba) {
+    renderShutuba(payload.shutuba);
+  } else if (state.selectedRaceNo) {
+    loadShutuba().catch(handleError);
+  } else {
+    renderEmpty(state.venues.length ? "レースを選択してください" : "この日は開催がありません");
+  }
 }
 
 async function init() {
-  showStatus(initAttempts > 0 ? `再読み込み中... (${initAttempts + 1})` : "読み込み中...");
+  showStatus("読み込み中...");
   try {
-    const data = await fetchJson("/api/dates");
-    state.dates = data.dates;
+    const datesData = await fetchJson("/api/dates");
+    state.dates = datesData.dates;
     state.selectedDate = findClosestDate(state.dates);
     renderDates();
     await loadRaces();
-    initAttempts = 0;
-  } catch (error) {
-    initAttempts += 1;
-    if (initAttempts < 8) {
-      showStatus(`サーバー起動待ち... (${initAttempts}/8)`, true);
-      setTimeout(() => init(), 5000);
-      return;
-    }
-    renderEmpty("データを読み込めませんでした。ページを再読み込みしてください。");
-    showStatus("初期化に失敗しました", true);
-    console.error(error);
   } finally {
-    if (initAttempts === 0) {
-      hideStatus(1500);
+    hideStatus();
+  }
+}
+
+async function fetchJson(url) {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), 15000);
+
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || `HTTP ${res.status}`);
     }
+    return data;
+  } finally {
+    window.clearTimeout(timer);
   }
 }
 
 function findClosestDate(dates) {
-  const today = new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  const today = formatLocalDate(now);
   const exact = dates.find((item) => item.date === today);
   if (exact) return exact.date;
 
   const future = dates.find((item) => item.date >= today);
-  return future ? future.date : dates[dates.length - 1].date;
+  return future ? future.date : dates[dates.length - 1]?.date || today;
+}
+
+function formatLocalDate(dateObj) {
+  const year = dateObj.getFullYear();
+  const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+  const day = String(dateObj.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function renderDates() {
@@ -94,18 +121,18 @@ function renderDates() {
     button.type = "button";
     button.className = "chip" + (item.date === state.selectedDate ? " active" : "");
     button.textContent = item.label;
-    button.addEventListener("click", async () => {
+    button.addEventListener("click", () => {
       if (state.selectedDate === item.date) return;
       state.selectedDate = item.date;
       renderDates();
-      await loadRaces();
+      loadRaces().catch(handleError);
     });
     dateScroll.appendChild(button);
   });
 
   const active = dateScroll.querySelector(".chip.active");
   if (active) {
-    active.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
+    active.scrollIntoView({ inline: "center", block: "nearest" });
   }
 }
 
@@ -121,8 +148,7 @@ async function shiftDate(direction) {
 async function loadRaces() {
   showStatus("レース一覧を取得中...");
   try {
-    const data = await fetchJson(`/api/races?date=${state.selectedDate}`, 3);
-
+    const data = await fetchJson(`/api/races?date=${state.selectedDate}`);
     state.venues = data.venues || [];
     state.selectedVenueIndex = 0;
     state.selectedRaceNo = state.venues[0]?.races?.[0]?.race_no ?? null;
@@ -135,10 +161,6 @@ async function loadRaces() {
     } else {
       renderEmpty("この日は開催がありません");
     }
-  } catch (error) {
-    renderEmpty("レース一覧を取得できませんでした");
-    showStatus(error.message, true);
-    console.error(error);
   } finally {
     hideStatus();
   }
@@ -151,14 +173,14 @@ function renderVenues() {
     button.type = "button";
     button.className = "venue-btn" + (index === state.selectedVenueIndex ? " active" : "");
     button.textContent = venue.venue_name;
-    button.addEventListener("click", async () => {
+    button.addEventListener("click", () => {
       if (state.selectedVenueIndex === index) return;
       state.selectedVenueIndex = index;
       state.selectedRaceNo = venue.races[0]?.race_no ?? null;
       renderVenues();
       renderRaces();
       if (state.selectedRaceNo) {
-        await loadShutuba();
+        loadShutuba().catch(handleError);
       }
     });
     venueRow.appendChild(button);
@@ -176,11 +198,11 @@ function renderRaces() {
     button.className = "race-btn" + (race.race_no === state.selectedRaceNo ? " active" : "");
     button.textContent = `${race.race_no}R`;
     button.title = race.summary;
-    button.addEventListener("click", async () => {
+    button.addEventListener("click", () => {
       if (state.selectedRaceNo === race.race_no) return;
       state.selectedRaceNo = race.race_no;
       renderRaces();
-      await loadShutuba();
+      loadShutuba().catch(handleError);
     });
     raceRow.appendChild(button);
   });
@@ -202,12 +224,8 @@ async function loadShutuba() {
 
   showStatus("出馬表を取得中...");
   try {
-    const data = await fetchJson(`/api/shutuba?race_id=${raceId}`, 3);
+    const data = await fetchJson(`/api/shutuba?race_id=${raceId}`);
     renderShutuba(data);
-  } catch (error) {
-    renderEmpty("出馬表を取得できませんでした");
-    showStatus(error.message, true);
-    console.error(error);
   } finally {
     hideStatus();
   }
@@ -218,7 +236,7 @@ function renderShutuba(data) {
   raceName.textContent = data.race_name || "レース名不明";
   raceData01.textContent = data.race_data01 || "";
   raceData02.textContent = data.race_data02 || "";
-  sourceLink.href = data.source_url;
+  sourceLink.href = data.source_url || "#";
 
   if (!data.horses?.length) {
     renderEmpty("出走馬データがありません");
@@ -260,11 +278,17 @@ function renderEmpty(message) {
 
 function escapeHtml(value) {
   return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function handleError(error) {
+  renderEmpty("データを取得できませんでした");
+  showStatus(error.message, true);
+  console.error(error);
 }
 
 let statusTimer = null;
