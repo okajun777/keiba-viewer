@@ -79,7 +79,13 @@ def cached(ttl_seconds: int):
 def fetch_html(url: str) -> str:
     response = requests.get(url, headers=HEADERS, timeout=30)
     response.raise_for_status()
-    return response.content.decode("euc-jp")
+    raw = response.content
+    for encoding in ("euc-jp", "cp932", "utf-8"):
+        try:
+            return raw.decode(encoding)
+        except UnicodeDecodeError:
+            continue
+    return raw.decode("euc-jp", errors="replace")
 
 
 def build_date_options(center: date | None = None, span: int = 14) -> list[dict]:
