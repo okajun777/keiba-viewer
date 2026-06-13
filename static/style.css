@@ -109,10 +109,11 @@ button {
 .venue-btn {
   flex: 1;
   min-width: 0;
-  padding: 10px 8px;
-  font-size: 15px;
-  font-weight: 700;
-  border-radius: 12px;
+  padding: 7px 6px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.1;
+  border-radius: 8px;
 }
 
 .race-btn {
@@ -126,10 +127,11 @@ button {
 
 .view-btn {
   flex: 1;
-  padding: 10px 12px;
-  font-size: 14px;
-  font-weight: 700;
-  border-radius: 12px;
+  padding: 7px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.1;
+  border-radius: 8px;
 }
 
 .odds-btn {
@@ -375,9 +377,10 @@ button {
   }
 
   .venue-btn {
-    padding: 6px 6px;
-    font-size: 12px;
-    border-radius: 8px;
+    padding: 3px 5px;
+    font-size: 10px;
+    min-height: 24px;
+    border-radius: 6px;
   }
 
   .race-btn {
@@ -389,9 +392,10 @@ button {
   }
 
   .view-btn {
-    padding: 6px 8px;
-    font-size: 11px;
-    border-radius: 8px;
+    padding: 3px 6px;
+    font-size: 10px;
+    min-height: 24px;
+    border-radius: 6px;
   }
 
   .odds-btn {
@@ -498,8 +502,10 @@ button {
   }
 
   .venue-btn {
-    padding: 5px 5px;
-    font-size: 11px;
+    padding: 2px 4px;
+    font-size: 9px;
+    min-height: 22px;
+    border-radius: 5px;
   }
 
   .race-btn {
@@ -509,8 +515,10 @@ button {
   }
 
   .view-btn {
-    padding: 5px 6px;
-    font-size: 10px;
+    padding: 2px 5px;
+    font-size: 9px;
+    min-height: 22px;
+    border-radius: 5px;
   }
 
   .odds-btn {
