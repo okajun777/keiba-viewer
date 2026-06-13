@@ -21,13 +21,15 @@ const statusEl = document.getElementById("status");
 document.getElementById("prevDate").addEventListener("click", () => shiftDate(-1));
 document.getElementById("nextDate").addEventListener("click", () => shiftDate(1));
 
+let initAttempts = 0;
+
 init();
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function fetchJson(url, retries = 6) {
+async function fetchJson(url, retries = 20) {
   let lastError = null;
 
   for (let attempt = 1; attempt <= retries; attempt += 1) {
@@ -42,7 +44,7 @@ async function fetchJson(url, retries = 6) {
       lastError = error;
       if (attempt < retries) {
         showStatus(`サーバー起動中... (${attempt}/${retries})`);
-        await sleep(3000);
+        await sleep(4000);
       }
     }
   }
@@ -51,19 +53,28 @@ async function fetchJson(url, retries = 6) {
 }
 
 async function init() {
-  showStatus("読み込み中...");
+  showStatus(initAttempts > 0 ? `再読み込み中... (${initAttempts + 1})` : "読み込み中...");
   try {
     const data = await fetchJson("/api/dates");
     state.dates = data.dates;
     state.selectedDate = findClosestDate(state.dates);
     renderDates();
     await loadRaces();
+    initAttempts = 0;
   } catch (error) {
+    initAttempts += 1;
+    if (initAttempts < 8) {
+      showStatus(`サーバー起動待ち... (${initAttempts}/8)`, true);
+      setTimeout(() => init(), 5000);
+      return;
+    }
     renderEmpty("データを読み込めませんでした。ページを再読み込みしてください。");
     showStatus("初期化に失敗しました", true);
     console.error(error);
   } finally {
-    hideStatus(1500);
+    if (initAttempts === 0) {
+      hideStatus(1500);
+    }
   }
 }
 
@@ -110,7 +121,7 @@ async function shiftDate(direction) {
 async function loadRaces() {
   showStatus("レース一覧を取得中...");
   try {
-    const data = await fetchJson(`/api/races?date=${state.selectedDate}`);
+    const data = await fetchJson(`/api/races?date=${state.selectedDate}`, 3);
 
     state.venues = data.venues || [];
     state.selectedVenueIndex = 0;
@@ -191,7 +202,7 @@ async function loadShutuba() {
 
   showStatus("出馬表を取得中...");
   try {
-    const data = await fetchJson(`/api/shutuba?race_id=${raceId}`);
+    const data = await fetchJson(`/api/shutuba?race_id=${raceId}`, 3);
     renderShutuba(data);
   } catch (error) {
     renderEmpty("出馬表を取得できませんでした");
