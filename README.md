@@ -44,27 +44,15 @@ https://unleasable-overmeekly-tomika.ngrok-free.dev
 
 ### 手順
 
-1. このフォルダを GitHub にアップロードする
+1. 次の URL を開く（Render にログイン済みならそのまま進めます）
 
-```bash
-cd C:\Users\okaju\keiba
-git init
-git add .
-git commit -m "Add keiba shutuba viewer"
-gh repo create keiba-viewer --public --source=. --push
-```
+https://dashboard.render.com/blueprint/new?repo=https://github.com/okajun777/keiba-viewer
 
-`gh` がない場合は、GitHub で空のリポジトリを作り、表示される手順どおりに push してください。
+2. **Apply**（または **Deploy Blueprint**）をクリック
 
-2. [Render ダッシュボード](https://dashboard.render.com/) で **New + → Blueprint** を選ぶ
+3. 数分後に `https://okajun-keiba-shutuba.onrender.com` で公開されます
 
-3. 作った GitHub リポジトリを接続する
-
-4. `render.yaml` が読み込まれるので、そのまま **Apply** する
-
-5. 数分後に `https://keiba-viewer-xxxx.onrender.com` のような URL が発行される
-
-6. スマホのブラウザでその URL を開き、ホーム画面に追加すると便利です
+GitHub リポジトリ: https://github.com/okajun777/keiba-viewer
 
 ### 無料プランの注意
 
