@@ -91,7 +91,9 @@ button {
 
 .chip,
 .venue-btn,
-.race-btn {
+.race-btn,
+.view-btn,
+.odds-btn {
   border: 1px solid var(--border);
   background: var(--panel);
   color: var(--text);
@@ -122,8 +124,24 @@ button {
   border-radius: 10px;
 }
 
+.view-btn {
+  flex: 1;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-weight: 700;
+  border-radius: 12px;
+}
+
+.odds-btn {
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 10px;
+}
+
 .venue-row,
-.race-row {
+.race-row,
+.odds-row {
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -135,10 +153,16 @@ button {
 
 .chip.active,
 .venue-btn.active,
-.race-btn.active {
+.race-btn.active,
+.view-btn.active,
+.odds-btn.active {
   background: var(--accent);
   border-color: var(--accent);
   color: #fff;
+}
+
+.hidden {
+  display: none !important;
 }
 
 .race-header {
@@ -149,6 +173,28 @@ button {
   padding: 10px 12px;
   background: var(--panel);
   border-bottom: 1px solid var(--border);
+}
+
+.header-links {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.purchase-link {
+  color: #fff;
+  text-decoration: none;
+  font-size: 12px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #d32f2f;
+  text-align: center;
+}
+
+.odds-meta {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
 }
 
 .race-no {
@@ -229,6 +275,37 @@ button {
   text-align: left;
   font-weight: 700;
   white-space: nowrap;
+}
+
+.odds-hot {
+  color: #ff6b6b;
+  font-weight: 800;
+}
+
+.ninki-1,
+.ninki-2,
+.ninki-3 {
+  display: inline-grid;
+  place-items: center;
+  min-width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  font-weight: 800;
+}
+
+.ninki-1 {
+  background: #fdd835;
+  color: #222;
+}
+
+.ninki-2 {
+  background: #1e88e5;
+  color: #fff;
+}
+
+.ninki-3 {
+  background: #fb8c00;
+  color: #fff;
 }
 
 .waku-badge {

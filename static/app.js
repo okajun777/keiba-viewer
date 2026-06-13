@@ -4,21 +4,52 @@ const state = {
   venues: [],
   selectedVenueIndex: 0,
   selectedRaceNo: null,
+  activeView: "shutuba",
+  activeOddsBet: "win_place",
+  currentShutuba: null,
+  currentOdds: null,
 };
 
 const dateScroll = document.getElementById("dateScroll");
 const venueRow = document.getElementById("venueRow");
 const raceRow = document.getElementById("raceRow");
+const oddsRow = document.getElementById("oddsRow");
 const horseBody = document.getElementById("horseBody");
+const oddsHead = document.getElementById("oddsHead");
+const oddsBody = document.getElementById("oddsBody");
+const shutubaTable = document.getElementById("shutubaTable");
+const oddsTable = document.getElementById("oddsTable");
 const raceNo = document.getElementById("raceNo");
 const raceName = document.getElementById("raceName");
 const raceData01 = document.getElementById("raceData01");
 const raceData02 = document.getElementById("raceData02");
+const oddsMeta = document.getElementById("oddsMeta");
 const sourceLink = document.getElementById("sourceLink");
+const purchaseLink = document.getElementById("purchaseLink");
 const statusEl = document.getElementById("status");
 
 document.getElementById("prevDate").addEventListener("click", () => shiftDate(-1));
 document.getElementById("nextDate").addEventListener("click", () => shiftDate(1));
+
+document.querySelectorAll(".view-btn").forEach((button) => {
+  button.addEventListener("click", () => {
+    const view = button.dataset.view;
+    if (state.activeView === view) return;
+    state.activeView = view;
+    updateViewButtons();
+    loadCurrentView().catch(handleError);
+  });
+});
+
+document.querySelectorAll(".odds-btn").forEach((button) => {
+  button.addEventListener("click", () => {
+    const bet = button.dataset.bet;
+    if (state.activeOddsBet === bet) return;
+    state.activeOddsBet = bet;
+    updateOddsButtons();
+    loadOdds().catch(handleError);
+  });
+});
 
 boot();
 
@@ -54,13 +85,31 @@ function applyPayload(payload) {
   state.venues = payload.venues || [];
   state.selectedVenueIndex = payload.selectedVenueIndex || 0;
   state.selectedRaceNo = payload.selectedRaceNo ?? state.venues[0]?.races?.[0]?.race_no ?? null;
+  state.activeView = payload.activeView || "shutuba";
+  state.activeOddsBet = payload.activeOddsBet || "win_place";
+  state.currentShutuba = payload.shutuba || null;
+  state.currentOdds = payload.odds || null;
 
   renderDates();
   renderVenues();
   renderRaces();
+  updateViewButtons();
+  updateOddsButtons();
 
-  if (payload.shutuba) {
-    renderShutuba(payload.shutuba);
+  if (state.currentShutuba) {
+    renderRaceHeader(state.currentShutuba);
+  }
+
+  if (state.activeView === "odds") {
+    if (state.currentOdds) {
+      renderOdds(state.currentOdds);
+    } else if (state.selectedRaceNo) {
+      loadOdds().catch(handleError);
+    } else {
+      renderOddsUnavailable("レースを選択してください");
+    }
+  } else if (state.currentShutuba) {
+    renderShutuba(state.currentShutuba);
   } else if (state.selectedRaceNo) {
     loadShutuba().catch(handleError);
   } else {
@@ -152,15 +201,12 @@ async function loadRaces() {
     state.venues = data.venues || [];
     state.selectedVenueIndex = 0;
     state.selectedRaceNo = state.venues[0]?.races?.[0]?.race_no ?? null;
+    state.currentShutuba = null;
+    state.currentOdds = null;
 
     renderVenues();
     renderRaces();
-
-    if (state.selectedRaceNo) {
-      await loadShutuba();
-    } else {
-      renderEmpty("この日は開催がありません");
-    }
+    await loadCurrentView();
   } finally {
     hideStatus();
   }
@@ -177,11 +223,11 @@ function renderVenues() {
       if (state.selectedVenueIndex === index) return;
       state.selectedVenueIndex = index;
       state.selectedRaceNo = venue.races[0]?.race_no ?? null;
+      state.currentShutuba = null;
+      state.currentOdds = null;
       renderVenues();
       renderRaces();
-      if (state.selectedRaceNo) {
-        loadShutuba().catch(handleError);
-      }
+      loadCurrentView().catch(handleError);
     });
     venueRow.appendChild(button);
   });
@@ -201,8 +247,10 @@ function renderRaces() {
     button.addEventListener("click", () => {
       if (state.selectedRaceNo === race.race_no) return;
       state.selectedRaceNo = race.race_no;
+      state.currentShutuba = null;
+      state.currentOdds = null;
       renderRaces();
-      loadShutuba().catch(handleError);
+      loadCurrentView().catch(handleError);
     });
     raceRow.appendChild(button);
   });
@@ -215,7 +263,22 @@ function currentRaceId() {
   return race ? race.race_id : null;
 }
 
-async function loadShutuba() {
+async function loadCurrentView() {
+  if (!state.selectedRaceNo) {
+    renderEmpty("この日は開催がありません");
+    return;
+  }
+
+  if (state.activeView === "odds") {
+    await loadShutuba({ renderTable: false });
+    await loadOdds();
+    return;
+  }
+
+  await loadShutuba();
+}
+
+async function loadShutuba(options = { renderTable: true }) {
   const raceId = currentRaceId();
   if (!raceId) {
     renderEmpty("レースが見つかりません");
@@ -225,18 +288,44 @@ async function loadShutuba() {
   showStatus("出馬表を取得中...");
   try {
     const data = await fetchJson(`/api/shutuba?race_id=${raceId}`);
-    renderShutuba(data);
+    state.currentShutuba = data;
+    renderRaceHeader(data);
+    if (options.renderTable !== false && state.activeView === "shutuba") {
+      renderShutuba(data);
+    }
   } finally {
     hideStatus();
   }
 }
 
-function renderShutuba(data) {
+async function loadOdds() {
+  const raceId = currentRaceId();
+  if (!raceId) {
+    renderOddsUnavailable("レースが見つかりません");
+    return;
+  }
+
+  showStatus("オッズを取得中...");
+  try {
+    const data = await fetchJson(`/api/odds?race_id=${raceId}&bet=${state.activeOddsBet}`);
+    state.currentOdds = data;
+    renderOdds(data);
+  } finally {
+    hideStatus();
+  }
+}
+
+function renderRaceHeader(data) {
   raceNo.textContent = `${data.race_no}R`;
   raceName.textContent = data.race_name || "レース名不明";
   raceData01.textContent = data.race_data01 || "";
   raceData02.textContent = data.race_data02 || "";
   sourceLink.href = data.source_url || "#";
+}
+
+function renderShutuba(data) {
+  showShutubaTable();
+  renderRaceHeader(data);
 
   if (!data.horses?.length) {
     renderEmpty("出走馬データがありません");
@@ -259,21 +348,145 @@ function renderShutuba(data) {
         <td>${escapeHtml(horse.jockey)}</td>
         <td>${escapeHtml(horse.trainer)}</td>
         <td>${escapeHtml(horse.weight || "-")}</td>
-        <td>${escapeHtml(horse.odds || "-")}</td>
-        <td>${escapeHtml(horse.ninki || "-")}</td>
+        <td class="${isHotOdds(horse.odds) ? "odds-hot" : ""}">${escapeHtml(horse.odds || "-")}</td>
+        <td>${renderNinki(horse.ninki)}</td>
       </tr>
     `
     )
     .join("");
 }
 
+function renderOdds(data) {
+  showOddsTable();
+  purchaseLink.href = data.purchase_url || "#";
+  purchaseLink.classList.remove("hidden");
+
+  if (data.status !== "ok") {
+    renderOddsUnavailable(data.message || "オッズを取得できませんでした");
+    oddsMeta.textContent = data.reason ? `状態: ${data.reason}` : "";
+    oddsMeta.classList.toggle("hidden", !data.reason);
+    return;
+  }
+
+  oddsMeta.textContent = data.official_datetime
+    ? `最終更新: ${data.official_datetime}`
+    : `${data.label} / 上位${data.rows.length}件表示`;
+  oddsMeta.classList.remove("hidden");
+
+  if (data.bet_type === "win_place") {
+    oddsHead.innerHTML = `
+      <tr>
+        <th>枠</th>
+        <th>番</th>
+        <th>馬名</th>
+        <th>単勝</th>
+        <th>複勝</th>
+        <th>人気</th>
+      </tr>
+    `;
+    oddsBody.innerHTML = data.rows
+      .map(
+        (row) => `
+        <tr>
+          <td>
+            <span class="waku-badge" style="background:${row.waku_color};color:${row.waku_text_color}">
+              ${escapeHtml(row.waku)}
+            </span>
+          </td>
+          <td>${escapeHtml(row.umaban)}</td>
+          <td class="horse-name">${escapeHtml(row.horse_name)}</td>
+          <td class="${isHotOdds(row.tansho_odds) ? "odds-hot" : ""}">${escapeHtml(row.tansho_odds || "-")}</td>
+          <td>${escapeHtml(row.fukusho_odds || "-")}</td>
+          <td>${renderNinki(row.tansho_ninki || row.fukusho_ninki)}</td>
+        </tr>
+      `
+      )
+      .join("");
+    return;
+  }
+
+  oddsHead.innerHTML = `
+    <tr>
+      <th>人気</th>
+      <th>組み合わせ</th>
+      <th>オッズ</th>
+    </tr>
+  `;
+  oddsBody.innerHTML = data.rows
+    .map(
+      (row) => `
+      <tr>
+        <td>${renderNinki(row.popularity)}</td>
+        <td class="horse-name">${escapeHtml(row.combo)}</td>
+        <td class="${isHotOdds(row.odds) ? "odds-hot" : ""}">${escapeHtml(row.odds || "-")}</td>
+      </tr>
+    `
+    )
+    .join("");
+}
+
+function renderOddsUnavailable(message) {
+  showOddsTable();
+  oddsHead.innerHTML = `
+    <tr>
+      <th>オッズ</th>
+    </tr>
+  `;
+  oddsBody.innerHTML = `<tr><td class="empty">${escapeHtml(message)}</td></tr>`;
+}
+
 function renderEmpty(message) {
+  showShutubaTable();
   raceNo.textContent = "-R";
   raceName.textContent = message;
   raceData01.textContent = "";
   raceData02.textContent = "";
+  oddsMeta.classList.add("hidden");
   sourceLink.href = "#";
+  purchaseLink.classList.add("hidden");
   horseBody.innerHTML = `<tr><td colspan="10" class="empty">${escapeHtml(message)}</td></tr>`;
+}
+
+function showShutubaTable() {
+  shutubaTable.classList.remove("hidden");
+  oddsTable.classList.add("hidden");
+  purchaseLink.classList.add("hidden");
+  oddsMeta.classList.add("hidden");
+}
+
+function showOddsTable() {
+  shutubaTable.classList.add("hidden");
+  oddsTable.classList.remove("hidden");
+}
+
+function updateViewButtons() {
+  document.querySelectorAll(".view-btn").forEach((button) => {
+    button.classList.toggle("active", button.dataset.view === state.activeView);
+  });
+  oddsRow.classList.toggle("hidden", state.activeView !== "odds");
+}
+
+function updateOddsButtons() {
+  document.querySelectorAll(".odds-btn").forEach((button) => {
+    button.classList.toggle("active", button.dataset.bet === state.activeOddsBet);
+  });
+}
+
+function isHotOdds(value) {
+  if (!value || value === "---.-" || value === "-") return false;
+  const number = Number(String(value).split("-")[0]);
+  return !Number.isNaN(number) && number > 0 && number <= 10;
+}
+
+function renderNinki(value) {
+  if (!value || value === "-" || value === "**") {
+    return escapeHtml(value || "-");
+  }
+  const rank = String(value).trim();
+  if (["1", "2", "3"].includes(rank)) {
+    return `<span class="ninki-${rank}">${escapeHtml(rank)}</span>`;
+  }
+  return escapeHtml(rank);
 }
 
 function escapeHtml(value) {
@@ -286,7 +499,11 @@ function escapeHtml(value) {
 }
 
 function handleError(error) {
-  renderEmpty("データを取得できませんでした");
+  if (state.activeView === "odds") {
+    renderOddsUnavailable("オッズを取得できませんでした");
+  } else {
+    renderEmpty("データを取得できませんでした");
+  }
   showStatus(error.message, true);
   console.error(error);
 }

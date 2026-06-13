@@ -19,6 +19,20 @@
 
       <div class="control-row venue-row" id="venueRow"></div>
       <div class="control-row race-row" id="raceRow"></div>
+
+      <div class="control-row view-row" id="viewRow">
+        <button type="button" class="view-btn active" data-view="shutuba">出馬表</button>
+        <button type="button" class="view-btn" data-view="odds">オッズ・購入</button>
+      </div>
+
+      <div class="control-row odds-row hidden" id="oddsRow">
+        <button type="button" class="odds-btn active" data-bet="win_place">単勝・複勝</button>
+        <button type="button" class="odds-btn" data-bet="umaren">馬連</button>
+        <button type="button" class="odds-btn" data-bet="wide">ワイド</button>
+        <button type="button" class="odds-btn" data-bet="umatan">馬単</button>
+        <button type="button" class="odds-btn" data-bet="sanrenpuku">3連複</button>
+        <button type="button" class="odds-btn" data-bet="sanrentan">3連単</button>
+      </div>
     </header>
 
     <section class="race-header" id="raceHeader">
@@ -27,12 +41,16 @@
         <h1 id="raceName">読み込み中...</h1>
         <p id="raceData01"></p>
         <p id="raceData02"></p>
+        <p class="odds-meta hidden" id="oddsMeta"></p>
       </div>
-      <a class="source-link" id="sourceLink" href="#" target="_blank" rel="noopener">netkeiba</a>
+      <div class="header-links">
+        <a class="source-link" id="sourceLink" href="#" target="_blank" rel="noopener">netkeiba</a>
+        <a class="purchase-link hidden" id="purchaseLink" href="#" target="_blank" rel="noopener">購入ページ</a>
+      </div>
     </section>
 
     <main class="table-wrap">
-      <table class="shutuba-table">
+      <table class="shutuba-table" id="shutubaTable">
         <thead>
           <tr>
             <th>枠</th>
@@ -53,12 +71,21 @@
           </tr>
         </tbody>
       </table>
+
+      <table class="shutuba-table hidden" id="oddsTable">
+        <thead id="oddsHead"></thead>
+        <tbody id="oddsBody">
+          <tr>
+            <td colspan="6" class="empty">読み込み中...</td>
+          </tr>
+        </tbody>
+      </table>
     </main>
 
     <div class="status" id="status"></div>
   </div>
 
   <script id="initial-data" type="application/json">{{ initial_data | tojson }}</script>
-  <script src="{{ url_for('static', filename='app.js') }}?v=4" defer></script>
+  <script src="{{ url_for('static', filename='app.js') }}?v=5" defer></script>
 </body>
 </html>
