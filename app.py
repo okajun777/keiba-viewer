@@ -3,7 +3,12 @@ from datetime import date
 
 from flask import Flask, jsonify, render_template, request
 
-from scraper import build_date_options, get_odds, get_race_list, get_shutuba
+from scraper import (
+    build_date_options,
+    get_odds,
+    get_race_list,
+    get_shutuba_with_odds,
+)
 
 app = Flask(__name__)
 
@@ -20,7 +25,7 @@ def build_initial_payload() -> dict:
         if venues and venues[0]["races"]:
             selected_race_no = venues[0]["races"][0]["race_no"]
             race_id = venues[0]["races"][0]["race_id"]
-            shutuba = get_shutuba(race_id)
+            shutuba = get_shutuba_with_odds(race_id)
             odds = get_odds(race_id, "win_place")
     except Exception:  # noqa: BLE001
         venues = []
@@ -93,7 +98,7 @@ def api_shutuba():
         return jsonify({"error": "race_id is required"}), 400
 
     try:
-        data = get_shutuba(race_id)
+        data = get_shutuba_with_odds(race_id)
     except Exception as exc:  # noqa: BLE001
         return jsonify({"error": str(exc)}), 502
 

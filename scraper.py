@@ -238,6 +238,46 @@ def get_shutuba(race_id: str) -> dict:
     return parse_shutuba(fetch_html(url), race_id)
 
 
+_ODDS_PLACEHOLDERS = {"", "---.-", "**", "-", "--"}
+
+
+def _is_placeholder_odds(value: str) -> bool:
+    text = (value or "").strip()
+    return text in _ODDS_PLACEHOLDERS or text.startswith("---")
+
+
+def enrich_shutuba_with_odds(shutuba: dict) -> dict:
+    horses = shutuba.get("horses") or []
+    if not horses:
+        return shutuba
+
+    odds = get_odds(shutuba["race_id"], "win_place")
+    if odds.get("status") != "ok":
+        return shutuba
+
+    odds_by_umaban: dict[str, dict] = {}
+    for row in odds.get("rows", []):
+        umaban = str(row["umaban"])
+        odds_by_umaban[umaban] = row
+        odds_by_umaban[umaban.zfill(2)] = row
+
+    for horse in horses:
+        umaban = str(horse["umaban"])
+        row = odds_by_umaban.get(umaban) or odds_by_umaban.get(umaban.zfill(2))
+        if not row:
+            continue
+        if _is_placeholder_odds(horse.get("odds", "")):
+            horse["odds"] = row.get("tansho_odds") or horse.get("odds", "")
+        if _is_placeholder_odds(horse.get("ninki", "")):
+            horse["ninki"] = row.get("tansho_ninki") or horse.get("ninki", "")
+
+    return shutuba
+
+
+def get_shutuba_with_odds(race_id: str) -> dict:
+    return enrich_shutuba_with_odds(get_shutuba(race_id))
+
+
 def _parse_odds_value(value: str) -> str:
     return value.replace(",", "").strip()
 

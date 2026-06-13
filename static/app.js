@@ -348,8 +348,8 @@ function renderShutuba(data) {
         <td>${escapeHtml(horse.jockey)}</td>
         <td>${escapeHtml(horse.trainer)}</td>
         <td>${escapeHtml(horse.weight || "-")}</td>
-        <td class="${isHotOdds(horse.odds) ? "odds-hot" : ""}">${escapeHtml(horse.odds || "-")}</td>
-        <td>${renderNinki(horse.ninki)}</td>
+        <td class="${isHotOdds(horse.odds) ? "odds-hot" : ""}">${escapeHtml(formatShutubaOdds(horse.odds))}</td>
+        <td>${renderNinki(formatShutubaNinki(horse.ninki))}</td>
       </tr>
     `
     )
@@ -470,6 +470,22 @@ function updateOddsButtons() {
   document.querySelectorAll(".odds-btn").forEach((button) => {
     button.classList.toggle("active", button.dataset.bet === state.activeOddsBet);
   });
+}
+
+function formatShutubaOdds(value) {
+  const text = String(value || "").trim();
+  if (!text || text === "---.-" || text === "**" || text === "--") {
+    return "-";
+  }
+  return text;
+}
+
+function formatShutubaNinki(value) {
+  const text = String(value || "").trim();
+  if (!text || text === "**" || text === "--") {
+    return "-";
+  }
+  return text;
 }
 
 function isHotOdds(value) {
