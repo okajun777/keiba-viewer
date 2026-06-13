@@ -1,0 +1,340 @@
+:root {
+  --bg: #0f1419;
+  --panel: #1a2332;
+  --panel-2: #243044;
+  --text: #eef2f7;
+  --muted: #9aa8bc;
+  --accent: #2f7df6;
+  --accent-soft: rgba(47, 125, 246, 0.18);
+  --border: #334155;
+  --danger: #ef5350;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Hiragino Sans", "Yu Gothic UI", "Meiryo", sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  padding:
+    var(--safe-top)
+    var(--safe-right)
+    var(--safe-bottom)
+    var(--safe-left);
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.controls {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: rgba(15, 20, 25, 0.96);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border);
+  padding: 8px 10px 10px;
+}
+
+.control-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.control-row + .control-row {
+  margin-top: 8px;
+}
+
+.nav-btn {
+  flex: 0 0 36px;
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel);
+  color: var(--text);
+}
+
+.date-scroll {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  flex: 1;
+  padding-bottom: 2px;
+}
+
+.date-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.chip,
+.venue-btn,
+.race-btn {
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.chip {
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
+.venue-btn {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 8px;
+  font-size: 15px;
+  font-weight: 700;
+  border-radius: 12px;
+}
+
+.race-btn {
+  min-width: 44px;
+  height: 40px;
+  padding: 0 10px;
+  font-size: 14px;
+  font-weight: 700;
+  border-radius: 10px;
+}
+
+.venue-row,
+.race-row {
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.venue-row::-webkit-scrollbar,
+.race-row::-webkit-scrollbar {
+  display: none;
+}
+
+.chip.active,
+.venue-btn.active,
+.race-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.race-header {
+  display: grid;
+  grid-template-columns: 56px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+}
+
+.race-no {
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.race-meta h1 {
+  margin: 0 0 4px;
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.race-meta p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.source-link {
+  color: var(--accent);
+  text-decoration: none;
+  font-size: 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel-2);
+}
+
+.table-wrap {
+  flex: 1;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.shutuba-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.shutuba-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.shutuba-table th {
+  background: #111827;
+  color: var(--muted);
+  font-weight: 600;
+  text-align: center;
+  padding: 8px 4px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.shutuba-table td {
+  padding: 7px 4px;
+  border-bottom: 1px solid rgba(51, 65, 85, 0.65);
+  text-align: center;
+  vertical-align: middle;
+}
+
+.shutuba-table tbody tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.shutuba-table .horse-name {
+  text-align: left;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.waku-badge {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  font-weight: 800;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+.empty {
+  padding: 28px 12px !important;
+  text-align: center !important;
+  color: var(--muted);
+}
+
+.status {
+  position: fixed;
+  left: 50%;
+  bottom: calc(12px + var(--safe-bottom));
+  transform: translateX(-50%);
+  background: rgba(17, 24, 39, 0.92);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.status.show {
+  opacity: 1;
+}
+
+.status.error {
+  border-color: var(--danger);
+  color: #ffcdd2;
+}
+
+@media (orientation: portrait) {
+  .controls {
+    padding-top: 10px;
+  }
+
+  .race-header {
+    grid-template-columns: 48px 1fr;
+  }
+
+  .source-link {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .controls {
+    padding: 6px 10px 8px;
+  }
+
+  .chip {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+
+  .venue-btn {
+    padding: 8px 6px;
+    font-size: 14px;
+  }
+
+  .race-btn {
+    min-width: 40px;
+    height: 34px;
+    font-size: 13px;
+  }
+
+  .race-header {
+    padding: 8px 12px;
+  }
+
+  .race-no {
+    width: 48px;
+    height: 48px;
+    font-size: 18px;
+  }
+
+  .race-meta h1 {
+    font-size: 16px;
+  }
+
+  .shutuba-table {
+    font-size: 12px;
+  }
+
+  .shutuba-table th,
+  .shutuba-table td {
+    padding: 5px 3px;
+  }
+}
+
+@media (min-width: 900px) {
+  .app {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+}

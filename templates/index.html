@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>出馬表ビューア</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="app">
+    <header class="controls" id="controls">
+      <div class="control-row date-row">
+        <button type="button" class="nav-btn" id="prevDate" aria-label="前の日">◀</button>
+        <div class="date-scroll" id="dateScroll"></div>
+        <button type="button" class="nav-btn" id="nextDate" aria-label="次の日">▶</button>
+      </div>
+
+      <div class="control-row venue-row" id="venueRow"></div>
+      <div class="control-row race-row" id="raceRow"></div>
+    </header>
+
+    <section class="race-header" id="raceHeader">
+      <div class="race-no" id="raceNo">-R</div>
+      <div class="race-meta">
+        <h1 id="raceName">レースを選択してください</h1>
+        <p id="raceData01"></p>
+        <p id="raceData02"></p>
+      </div>
+      <a class="source-link" id="sourceLink" href="#" target="_blank" rel="noopener">netkeiba</a>
+    </section>
+
+    <main class="table-wrap">
+      <table class="shutuba-table">
+        <thead>
+          <tr>
+            <th>枠</th>
+            <th>番</th>
+            <th>馬名</th>
+            <th>性齢</th>
+            <th>斤量</th>
+            <th>騎手</th>
+            <th>厩舎</th>
+            <th>馬体重</th>
+            <th>オッズ</th>
+            <th>人気</th>
+          </tr>
+        </thead>
+        <tbody id="horseBody">
+          <tr>
+            <td colspan="10" class="empty">日付・開催場・レースを選ぶと出馬表が表示されます</td>
+          </tr>
+        </tbody>
+      </table>
+    </main>
+
+    <div class="status" id="status"></div>
+  </div>
+
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
