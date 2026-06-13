@@ -41,6 +41,7 @@
         <h1 id="raceName">読み込み中...</h1>
         <p id="raceData01"></p>
         <p id="raceData02"></p>
+        <p class="refresh-meta hidden" id="refreshMeta"></p>
         <p class="odds-meta hidden" id="oddsMeta"></p>
       </div>
       <div class="header-links">
@@ -86,6 +87,6 @@
   </div>
 
   <script id="initial-data" type="application/json">{{ initial_data | tojson }}</script>
-  <script src="{{ url_for('static', filename='app.js') }}?v=6" defer></script>
+  <script src="{{ url_for('static', filename='app.js') }}?v=7" defer></script>
 </body>
 </html>

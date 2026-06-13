@@ -1,3 +1,5 @@
+const AUTO_REFRESH_MS = 60_000;
+
 const state = {
   dates: [],
   selectedDate: null,
@@ -24,6 +26,7 @@ const raceName = document.getElementById("raceName");
 const raceData01 = document.getElementById("raceData01");
 const raceData02 = document.getElementById("raceData02");
 const oddsMeta = document.getElementById("oddsMeta");
+const refreshMeta = document.getElementById("refreshMeta");
 const sourceLink = document.getElementById("sourceLink");
 const purchaseLink = document.getElementById("purchaseLink");
 const statusEl = document.getElementById("status");
@@ -49,6 +52,12 @@ document.querySelectorAll(".odds-btn").forEach((button) => {
     updateOddsButtons();
     loadOdds().catch(handleError);
   });
+});
+
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) {
+    refreshCurrentData().catch(console.error);
+  }
 });
 
 boot();
@@ -115,6 +124,8 @@ function applyPayload(payload) {
   } else {
     renderEmpty(state.venues.length ? "レースを選択してください" : "この日は開催がありません");
   }
+
+  startAutoRefresh();
 }
 
 async function init() {
@@ -125,6 +136,7 @@ async function init() {
     state.selectedDate = findClosestDate(state.dates);
     renderDates();
     await loadRaces();
+    startAutoRefresh();
   } finally {
     hideStatus();
   }
@@ -278,40 +290,50 @@ async function loadCurrentView() {
   await loadShutuba();
 }
 
-async function loadShutuba(options = { renderTable: true }) {
+async function loadShutuba(options = { renderTable: true, silent: false }) {
   const raceId = currentRaceId();
   if (!raceId) {
     renderEmpty("レースが見つかりません");
     return;
   }
 
-  showStatus("出馬表を取得中...");
+  if (!options.silent) {
+    showStatus("出馬表を取得中...");
+  }
   try {
-    const data = await fetchJson(`/api/shutuba?race_id=${raceId}`);
+    const data = await fetchJson(buildApiUrl("/api/shutuba", { race_id: raceId }, options.silent));
     state.currentShutuba = data;
     renderRaceHeader(data);
     if (options.renderTable !== false && state.activeView === "shutuba") {
       renderShutuba(data);
     }
   } finally {
-    hideStatus();
+    if (!options.silent) {
+      hideStatus();
+    }
   }
 }
 
-async function loadOdds() {
+async function loadOdds(options = { silent: false }) {
   const raceId = currentRaceId();
   if (!raceId) {
     renderOddsUnavailable("レースが見つかりません");
     return;
   }
 
-  showStatus("オッズを取得中...");
+  if (!options.silent) {
+    showStatus("オッズを取得中...");
+  }
   try {
-    const data = await fetchJson(`/api/odds?race_id=${raceId}&bet=${state.activeOddsBet}`);
+    const data = await fetchJson(
+      buildApiUrl("/api/odds", { race_id: raceId, bet: state.activeOddsBet }, options.silent)
+    );
     state.currentOdds = data;
     renderOdds(data);
   } finally {
-    hideStatus();
+    if (!options.silent) {
+      hideStatus();
+    }
   }
 }
 
@@ -441,6 +463,7 @@ function renderEmpty(message) {
   raceName.textContent = message;
   raceData01.textContent = "";
   raceData02.textContent = "";
+  refreshMeta.classList.add("hidden");
   oddsMeta.classList.add("hidden");
   sourceLink.href = "#";
   purchaseLink.classList.add("hidden");
@@ -525,6 +548,59 @@ function handleError(error) {
 }
 
 let statusTimer = null;
+let autoRefreshTimer = null;
+let autoRefreshInFlight = false;
+
+function buildApiUrl(path, params, bustCache = false) {
+  const search = new URLSearchParams(params);
+  if (bustCache) {
+    search.set("_", String(Date.now()));
+  }
+  return `${path}?${search.toString()}`;
+}
+
+function startAutoRefresh() {
+  stopAutoRefresh();
+  autoRefreshTimer = window.setInterval(() => {
+    if (document.hidden || !state.selectedRaceNo) return;
+    refreshCurrentData().catch((error) => {
+      console.error("auto refresh failed", error);
+    });
+  }, AUTO_REFRESH_MS);
+}
+
+function stopAutoRefresh() {
+  if (autoRefreshTimer) {
+    window.clearInterval(autoRefreshTimer);
+    autoRefreshTimer = null;
+  }
+}
+
+async function refreshCurrentData() {
+  if (autoRefreshInFlight || !state.selectedRaceNo) return;
+
+  autoRefreshInFlight = true;
+  try {
+    if (state.activeView === "odds") {
+      await loadShutuba({ renderTable: false, silent: true });
+      await loadOdds({ silent: true });
+    } else {
+      await loadShutuba({ renderTable: true, silent: true });
+    }
+    updateLastRefreshed();
+  } finally {
+    autoRefreshInFlight = false;
+  }
+}
+
+function updateLastRefreshed() {
+  if (!refreshMeta) return;
+  const now = new Date();
+  const hours = String(now.getHours()).padStart(2, "0");
+  const minutes = String(now.getMinutes()).padStart(2, "0");
+  refreshMeta.textContent = `自動更新 ${hours}:${minutes}`;
+  refreshMeta.classList.remove("hidden");
+}
 
 function showStatus(message, isError = false) {
   statusEl.textContent = message;

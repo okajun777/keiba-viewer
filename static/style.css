@@ -199,6 +199,12 @@ button {
   font-size: 12px;
 }
 
+.refresh-meta {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
 .race-no {
   width: 56px;
   height: 56px;
