@@ -23,20 +23,47 @@ document.getElementById("nextDate").addEventListener("click", () => shiftDate(1)
 
 init();
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function fetchJson(url, retries = 6) {
+  let lastError = null;
+
+  for (let attempt = 1; attempt <= retries; attempt += 1) {
+    try {
+      const res = await fetch(url);
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
+      return data;
+    } catch (error) {
+      lastError = error;
+      if (attempt < retries) {
+        showStatus(`サーバー起動中... (${attempt}/${retries})`);
+        await sleep(3000);
+      }
+    }
+  }
+
+  throw lastError;
+}
+
 async function init() {
   showStatus("読み込み中...");
   try {
-    const res = await fetch("/api/dates");
-    const data = await res.json();
+    const data = await fetchJson("/api/dates");
     state.dates = data.dates;
     state.selectedDate = findClosestDate(state.dates);
     renderDates();
     await loadRaces();
   } catch (error) {
+    renderEmpty("データを読み込めませんでした。ページを再読み込みしてください。");
     showStatus("初期化に失敗しました", true);
     console.error(error);
   } finally {
-    hideStatus();
+    hideStatus(1500);
   }
 }
 
@@ -83,9 +110,7 @@ async function shiftDate(direction) {
 async function loadRaces() {
   showStatus("レース一覧を取得中...");
   try {
-    const res = await fetch(`/api/races?date=${state.selectedDate}`);
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "レース一覧の取得に失敗しました");
+    const data = await fetchJson(`/api/races?date=${state.selectedDate}`);
 
     state.venues = data.venues || [];
     state.selectedVenueIndex = 0;
@@ -166,9 +191,7 @@ async function loadShutuba() {
 
   showStatus("出馬表を取得中...");
   try {
-    const res = await fetch(`/api/shutuba?race_id=${raceId}`);
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "出馬表の取得に失敗しました");
+    const data = await fetchJson(`/api/shutuba?race_id=${raceId}`);
     renderShutuba(data);
   } catch (error) {
     renderEmpty("出馬表を取得できませんでした");

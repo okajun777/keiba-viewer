@@ -77,9 +77,9 @@ def cached(ttl_seconds: int):
 
 
 def fetch_html(url: str) -> str:
-    response = requests.get(url, headers=HEADERS, timeout=20)
-    response.encoding = "EUC-JP"
-    return response.text
+    response = requests.get(url, headers=HEADERS, timeout=30)
+    response.raise_for_status()
+    return response.content.decode("euc-jp")
 
 
 def build_date_options(center: date | None = None, span: int = 14) -> list[dict]:
@@ -134,6 +134,8 @@ def parse_race_list(html: str) -> list[dict]:
             )
 
         if races:
+            venue_code = races[0]["race_id"][4:6]
+            venue_name = VENUE_CODES.get(venue_code, _extract_venue_name(venue_title))
             venues.append(
                 {
                     "venue_name": venue_name,
